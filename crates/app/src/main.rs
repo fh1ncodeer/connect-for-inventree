@@ -109,7 +109,7 @@ fn get_status(state: State<'_, App>) -> Status {
 #[tauri::command]
 fn set_gateway(app: AppHandle, state: State<'_, App>, gateway_id: String) -> Result<(), String> {
     let id = gateway_id.trim().to_string();
-    id.parse::<EndpointId>().map_err(|e| format!("Ungültige Gateway-Kennung: {e}"))?;
+    id.parse::<EndpointId>().map_err(|e| format!("Invalid gateway id: {e}"))?;
     let mut cfg = state.config.lock().unwrap();
     cfg.gateway_id = Some(id);
     save_config(&state.config_path, &cfg).map_err(|e| e.to_string())?;
@@ -127,7 +127,7 @@ fn retry(state: State<'_, App>) {
 /// Device management, only answered by the gateway for admin devices.
 #[tauri::command]
 async fn admin_request(state: State<'_, App>, request: AdminRequest) -> Result<AdminReply, String> {
-    let conn = state.conn.lock().unwrap().clone().ok_or("Keine Verbindung zum Server")?;
+    let conn = state.conn.lock().unwrap().clone().ok_or("Not connected to the server")?;
     let res = async {
         let (mut send, mut recv) = conn.open_bi().await?;
         send.write_u8(STREAM_ADMIN).await?;
@@ -234,7 +234,7 @@ async fn introduce(endpoint: &Endpoint, gateway: &str) -> Result<(Connection, He
     let id: EndpointId = gateway.parse()?;
     let conn = tokio::time::timeout(CONNECT_TIMEOUT, endpoint.connect(id, ALPN))
         .await
-        .map_err(|_| anyhow!("Zeitüberschreitung beim Verbinden mit dem Gateway"))??;
+        .map_err(|_| anyhow!("Timed out connecting to the gateway"))??;
     let (mut send, mut recv) = conn.open_bi().await?;
     send.write_u8(STREAM_HELLO).await?;
     write_msg(&mut send, &hello()).await?;
@@ -338,14 +338,14 @@ fn setup(app: &mut tauri::App) -> Result<()> {
         app,
         &[&Submenu::with_items(
             app,
-            "Verbindung",
+            "Connection",
             true,
             &[
-                &MenuItem::with_id(app, "status", "Status anzeigen", true, Some("CmdOrCtrl+Shift+S"))?,
-                &MenuItem::with_id(app, "inventree", "InvenTree öffnen", true, Some("CmdOrCtrl+Shift+I"))?,
-                &MenuItem::with_id(app, "devices", "Geräte verwalten", true, Some("CmdOrCtrl+Shift+G"))?,
+                &MenuItem::with_id(app, "status", "Show status", true, Some("CmdOrCtrl+Shift+S"))?,
+                &MenuItem::with_id(app, "inventree", "Open InvenTree", true, Some("CmdOrCtrl+Shift+I"))?,
+                &MenuItem::with_id(app, "devices", "Manage devices", true, Some("CmdOrCtrl+Shift+G"))?,
                 &MenuItem::with_id(app, "backups", "Backups", true, Some("CmdOrCtrl+Shift+B"))?,
-                &MenuItem::with_id(app, "reconnect", "Neu verbinden", true, Some("CmdOrCtrl+Shift+R"))?,
+                &MenuItem::with_id(app, "reconnect", "Reconnect", true, Some("CmdOrCtrl+Shift+R"))?,
             ],
         )?],
     )?;
@@ -393,7 +393,7 @@ fn setup(app: &mut tauri::App) -> Result<()> {
             Ok(l) => l,
             Err(e) => {
                 state.set_phase(&handle, Phase::Error {
-                    message: format!("Port {LOCAL_ADDR} ist belegt ({e}). Läuft die App schon?"),
+                    message: format!("Port {LOCAL_ADDR} is in use ({e}). Is the app already running?"),
                 });
                 return;
             }

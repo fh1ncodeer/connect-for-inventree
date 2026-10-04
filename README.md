@@ -98,7 +98,7 @@ in the app's local data dir (`~/.local/share/<identifier>`, `%LOCALAPPDATA%\<ide
 2. On the server, approve it once as admin device:
    `deploy/gw approve 3f9a-b27c --user admin --admin`
 3. Colleagues start the app and tell the admin their short id (by phone or in person). The admin
-   approves them in the app under **⇄ Verbindung → Geräte verwalten** and creates their InvenTree
+   approves them in the app under **⇄ Connection → Manage devices** and creates their InvenTree
    accounts as usual.
 
 Gateway CLI (via the `deploy/gw` wrapper or `sudo -u inventree /opt/inventree/bin/inventree-gw`):

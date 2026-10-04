@@ -127,7 +127,7 @@ pub fn create(paths: &Paths, keep: usize) -> Result<PathBuf> {
         time: rfc3339(SystemTime::now()),
         ok: result.is_ok(),
         message: match &result {
-            Ok(p) => format!("{} erstellt", p.file_name().unwrap_or_default().to_string_lossy()),
+            Ok(p) => format!("created {}", p.file_name().unwrap_or_default().to_string_lossy()),
             Err(e) => format!("{e:#}"),
         },
     };
@@ -145,7 +145,7 @@ fn create_inner(paths: &Paths, keep: usize) -> Result<PathBuf> {
     let recipients = recipients(&paths.gateway)?;
     ensure!(
         !recipients.is_empty(),
-        "kein Backup-Schlüssel hinterlegt (in der App unter Backups einrichten)"
+        "no backup key set (set it up in the app under Backups)"
     );
 
     let tmp = paths.home.join("tmp");
@@ -267,14 +267,14 @@ fn read_key_file(path: &Path) -> Result<String> {
     if raw.starts_with(b"AGE-SECRET-KEY-") || raw.starts_with(b"#") {
         return Ok(String::from_utf8(raw)?);
     }
-    let passphrase = rpassword::prompt_password("Passphrase für den Backup-Schlüssel: ")?;
+    let passphrase = rpassword::prompt_password("Passphrase for the backup key: ")?;
     let reader = age::armor::ArmoredReader::new(raw.as_slice());
     let decryptor = age::Decryptor::new(reader)?;
     let identity = age::scrypt::Identity::new(passphrase.into());
     let mut out = String::new();
     decryptor
         .decrypt(std::iter::once(&identity as &dyn age::Identity))
-        .context("falsche Passphrase?")?
+        .context("wrong passphrase?")?
         .read_to_string(&mut out)?;
     Ok(out)
 }

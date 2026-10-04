@@ -140,8 +140,8 @@ pub async fn admin_call(conn: &Connection, request: &AdminRequest) -> Result<Adm
 
 fn admin_conn(state: &App) -> Result<Connection> {
     let is_admin = matches!(state.status.lock().unwrap().phase, crate::Phase::Approved { admin: true, .. });
-    ensure!(is_admin, "Nur auf Admin-Geräten verfügbar");
-    state.conn.lock().unwrap().clone().context("Keine Verbindung zum Server")
+    ensure!(is_admin, "Only available on admin devices");
+    state.conn.lock().unwrap().clone().context("Not connected to the server")
 }
 
 fn local_files(dir: &Path) -> Vec<LocalFile> {
@@ -234,7 +234,7 @@ async fn download(app: &AppHandle, conn: &Connection, dir: &Path, info: &BackupI
     }
     file.sync_all()?;
     drop(file);
-    ensure!(done == size, "Download unvollständig ({done} von {size} Bytes), wird fortgesetzt");
+    ensure!(done == size, "Download incomplete ({done} of {size} bytes), will resume");
     fs::rename(&partial, &target)?;
     let _ = app.emit("backup-progress", Progress { name: info.name.clone(), done, total: size });
     Ok(target)
@@ -250,7 +250,7 @@ fn prune_local(dir: &Path, keep: u32) -> Result<()> {
 /// Fetches the newest backup (or `only` a specific one) into the backup folder.
 pub async fn sync(app: &AppHandle, state: &App, only: Option<String>) -> Result<String> {
     if state.backup_syncing.swap(true, Ordering::SeqCst) {
-        bail!("Abgleich läuft bereits");
+        bail!("A sync is already running");
     }
     let result = sync_inner(app, state, only).await;
     state.backup_syncing.store(false, Ordering::SeqCst);
@@ -275,15 +275,15 @@ async fn sync_inner(app: &AppHandle, state: &App, only: Option<String>) -> Resul
     let conn = admin_conn(state)?;
     let settings = state.config.lock().unwrap().backup.clone();
     let dir = folder(app, &settings);
-    fs::create_dir_all(&dir).with_context(|| format!("Ordner {} anlegen", dir.display()))?;
+    fs::create_dir_all(&dir).with_context(|| format!("creating folder {}", dir.display()))?;
 
     let AdminReply::Backups { key_set, backups, .. } = admin_call(&conn, &AdminRequest::BackupStatus).await? else {
-        bail!("unerwartete Antwort vom Server");
+        bail!("unexpected reply from the server");
     };
-    ensure!(key_set, "Es ist noch kein Backup-Schlüssel eingerichtet");
+    ensure!(key_set, "No backup key has been set up yet");
     let info = match &only {
-        Some(name) => backups.iter().find(|b| &b.name == name).context("Backup nicht mehr auf dem Server")?,
-        None => backups.first().context("Auf dem Server gibt es noch kein Backup")?,
+        Some(name) => backups.iter().find(|b| &b.name == name).context("Backup no longer exists on the server")?,
+        None => backups.first().context("There is no backup on the server yet")?,
     };
     download(app, &conn, &dir, info).await?;
     if only.is_none() {
@@ -318,21 +318,21 @@ pub async fn create_now(state: &App) -> Result<()> {
 pub async fn setup_key(app: &AppHandle, state: &App, passphrase: String) -> Result<KeySetup> {
     ensure!(
         passphrase.chars().count() >= MIN_PASSPHRASE,
-        "Die Passphrase muss mindestens {MIN_PASSPHRASE} Zeichen haben"
+        "The passphrase must have at least {MIN_PASSPHRASE} characters"
     );
     let conn = admin_conn(state)?;
     let settings = state.config.lock().unwrap().backup.clone();
     let dir = folder(app, &settings);
     fs::create_dir_all(&dir)?;
     let key_path = dir.join(KEY_FILE);
-    ensure!(!key_path.exists(), "{} existiert bereits", key_path.display());
+    ensure!(!key_path.exists(), "{} already exists", key_path.display());
 
     let identity = age::x25519::Identity::generate();
     let public_key = identity.to_public().to_string();
     let secret_key = identity.to_string().expose_secret().to_string();
 
     let plain = format!(
-        "# InvenTree Backup-Schlüssel, erstellt {}\n# public key: {public_key}\n{secret_key}\n",
+        "# InvenTree backup key, created {}\n# public key: {public_key}\n{secret_key}\n",
         now()
     );
     let encryptor = age::Encryptor::with_user_passphrase(passphrase.into());

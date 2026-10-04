@@ -8,8 +8,8 @@
     const a = document.createElement("a");
     a.id = "__connect_for_inventree";
     a.href = "/__connect/home";
-    a.textContent = "⇄ Verbindung";
-    a.title = "Connect for InvenTree: Verbindung und Geräte";
+    a.textContent = "⇄ Connection";
+    a.title = "Connect for InvenTree: connection and devices";
     a.style.cssText =
       "position:fixed;left:12px;bottom:12px;z-index:2147483647;padding:4px 10px;border-radius:99px;" +
       "background:#2b6cb0;color:#fff;font:600 12px system-ui,sans-serif;text-decoration:none;" +

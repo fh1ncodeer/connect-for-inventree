@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -72,138 +72,138 @@
 <body>
 <main class="card" id="statusview">
   <h1>Connect for InvenTree</h1>
-  <p class="sub">Sichere Verbindung zum InvenTree-Server</p>
+  <p class="sub">Secure connection to the InvenTree server</p>
 
-  <div class="state"><span class="dot" id="dot"></span><span id="title">Starte …</span></div>
+  <div class="state"><span class="dot" id="dot"></span><span id="title">Starting …</span></div>
   <p class="msg" id="msg"></p>
   <div class="warn-box" id="stalewarn" hidden></div>
 
   <section id="pending" hidden>
     <div class="code" id="code"></div>
-    <p class="msg">Teile diese Kennung deinem Administrator mit (am besten telefonisch oder persönlich).
-      Sobald das Gerät freigeschaltet ist, öffnet sich InvenTree automatisch.</p>
+    <p class="msg">Tell this code to your administrator (preferably by phone or in person).
+      As soon as the device is approved, InvenTree opens automatically.</p>
   </section>
 
   <section id="setup" hidden>
-    <label for="gw">Gateway-Kennung</label>
-    <input id="gw" placeholder="64-stellige Kennung vom Administrator" autocomplete="off" spellcheck="false">
+    <label for="gw">Gateway id</label>
+    <input id="gw" placeholder="64 character id from your administrator" autocomplete="off" spellcheck="false">
     <div class="err" id="gwerr"></div>
     <div class="row">
-      <button id="save">Speichern &amp; verbinden</button>
-      <button id="cancel" class="secondary">Abbrechen</button>
+      <button id="save">Save &amp; connect</button>
+      <button id="cancel" class="secondary">Cancel</button>
     </div>
   </section>
 
   <div class="row" id="actions">
-    <button id="open" hidden>InvenTree öffnen</button>
-    <button id="devices" class="secondary" hidden>Geräte verwalten</button>
+    <button id="open" hidden>Open InvenTree</button>
+    <button id="devices" class="secondary" hidden>Manage devices</button>
     <button id="backups" class="secondary" hidden>Backups</button>
-    <button id="retry" class="secondary">Neu verbinden</button>
-    <button id="change" class="secondary">Gateway ändern</button>
+    <button id="retry" class="secondary">Reconnect</button>
+    <button id="change" class="secondary">Change gateway</button>
   </div>
 
   <details>
-    <summary>Technische Details</summary>
-    <p>Geräte-Kennung: <code id="devid"></code></p>
+    <summary>Technical details</summary>
+    <p>Device id: <code id="devid"></code></p>
     <p>Gateway: <code id="gwid">–</code></p>
   </details>
 </main>
 
 <main class="card wide" id="devview" hidden>
   <div class="bar">
-    <h1>Geräte verwalten</h1>
+    <h1>Manage devices</h1>
     <div class="row" style="margin:0">
-      <button id="devback" class="secondary">← Zurück</button>
-      <button id="refresh" class="secondary">Aktualisieren</button>
-      <button id="back">Zurück zu InvenTree</button>
+      <button id="devback" class="secondary">← Back</button>
+      <button id="refresh" class="secondary">Refresh</button>
+      <button id="back">Back to InvenTree</button>
     </div>
   </div>
   <div class="err" id="deverr"></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Kennung</th><th>Status</th><th>Gerät</th><th>Windows-Benutzer</th><th>InvenTree-Benutzer</th><th>Zuletzt gesehen</th><th></th></tr></thead>
+      <thead><tr><th>Code</th><th>Status</th><th>Device</th><th>OS user</th><th>InvenTree user</th><th>Last seen</th><th></th></tr></thead>
       <tbody id="devrows"></tbody>
     </table>
   </div>
-  <p class="hint">Vergleiche die Kennung immer mit der, die dir der Mitarbeiter nennt, bevor du ein Gerät freischaltest.
-    Die InvenTree-Accounts legst du wie gewohnt in InvenTree unter Einstellungen → Benutzer an.</p>
+  <p class="hint">Always compare the code with the one your colleague tells you before approving a device.
+    Create InvenTree accounts as usual in InvenTree under Settings → Users.</p>
 </main>
 <main class="card wide" id="bakview" hidden>
   <div class="bar">
     <h1>Backups</h1>
     <div class="row" style="margin:0">
-      <button id="bakback" class="secondary">← Zurück</button>
-      <button id="bakinv">Zurück zu InvenTree</button>
+      <button id="bakback" class="secondary">← Back</button>
+      <button id="bakinv">Back to InvenTree</button>
     </div>
   </div>
   <div class="err" id="bakerr"></div>
 
   <section id="keysetup" hidden>
-    <div class="warn-box">Es ist noch kein Backup-Schlüssel eingerichtet. Ohne Schlüssel erstellt der Server keine Backups.</div>
-    <p class="msg">Die Backups werden mit einem Schlüsselpaar verschlüsselt. Der Server bekommt nur den öffentlichen Teil
-      und kann die Backups daher nicht selbst lesen. Der private Schlüssel wird mit deiner Passphrase geschützt im
-      Backup-Ordner gespeichert. <b>Ohne Passphrase und Schlüssel ist kein Backup wiederherstellbar.</b></p>
+    <div class="warn-box">No backup key has been set up yet. Without a key the server does not create backups.</div>
+    <p class="msg">Backups are encrypted with a key pair. The server only gets the public key
+      and therefore cannot read the backups itself. The secret key is stored in the backup folder, protected by
+      your passphrase. <b>Without passphrase and key no backup can be restored.</b></p>
     <div class="form-grid">
-      <label for="pp1">Passphrase</label><input id="pp1" type="password" autocomplete="new-password" placeholder="mindestens 12 Zeichen">
-      <label for="pp2">Wiederholen</label><input id="pp2" type="password" autocomplete="new-password">
+      <label for="pp1">Passphrase</label><input id="pp1" type="password" autocomplete="new-password" placeholder="at least 12 characters">
+      <label for="pp2">Repeat</label><input id="pp2" type="password" autocomplete="new-password">
     </div>
-    <div class="row"><button id="genkey">Schlüssel erzeugen</button></div>
+    <div class="row"><button id="genkey">Create key</button></div>
   </section>
 
   <section id="keyresult" hidden>
-    <div class="warn-box">Bewahre den privaten Schlüssel jetzt sicher auf: im Passwortmanager und ausgedruckt im Tresor.
-      Er wird nur dieses eine Mal angezeigt.</div>
+    <div class="warn-box">Store the secret key safely now: in a password manager and printed in a safe.
+      It is shown only this once.</div>
     <dl class="kv">
-      <dt>Privater Schlüssel</dt><dd><div class="secret" id="ksecret"></div></dd>
-      <dt>Öffentlicher Schlüssel</dt><dd><code id="kpublic"></code></dd>
-      <dt>Schlüsseldatei</dt><dd><code id="kfile"></code> (mit deiner Passphrase geschützt)</dd>
+      <dt>Secret key</dt><dd><div class="secret" id="ksecret"></div></dd>
+      <dt>Public key</dt><dd><code id="kpublic"></code></dd>
+      <dt>Key file</dt><dd><code id="kfile"></code> (protected by your passphrase)</dd>
     </dl>
-    <div class="row"><button id="kprint" class="secondary">Drucken</button><button id="kdone">Ich habe den Schlüssel sicher aufbewahrt</button></div>
+    <div class="row"><button id="kprint" class="secondary">Print</button><button id="kdone">I have stored the key safely</button></div>
   </section>
 
   <section class="block" id="bakstatus">
     <h2>Status</h2>
     <dl class="kv">
-      <dt>Letzte Sicherung (Server)</dt><dd id="srvlast">–</dd>
-      <dt>Backups auf dem Server</dt><dd id="srvcount">–</dd>
-      <dt>Letzter Abgleich (lokal)</dt><dd id="loclast">–</dd>
-      <dt>Lokaler Ordner</dt><dd id="locdir">–</dd>
-      <dt>Lokal vorhanden</dt><dd id="loccount">–</dd>
+      <dt>Last backup (server)</dt><dd id="srvlast">–</dd>
+      <dt>Backups on the server</dt><dd id="srvcount">–</dd>
+      <dt>Last sync (local)</dt><dd id="loclast">–</dd>
+      <dt>Local folder</dt><dd id="locdir">–</dd>
+      <dt>Available locally</dt><dd id="loccount">–</dd>
     </dl>
     <div class="warn-box" id="bakwarn" hidden></div>
     <div class="bad-box" id="bakfail" hidden></div>
     <div id="progwrap" hidden><div class="statusline" id="progtext"></div><progress id="prog" max="1" value="0"></progress></div>
     <div class="row">
-      <button id="syncnow">Jetzt abgleichen</button>
-      <button id="createnow" class="secondary">Backup jetzt erstellen</button>
+      <button id="syncnow">Sync now</button>
+      <button id="createnow" class="secondary">Create backup now</button>
     </div>
   </section>
 
   <section class="block">
-    <h2>Automatischer Abgleich</h2>
+    <h2>Automatic sync</h2>
     <div class="form-grid">
-      <label for="senabled">Automatisch</label>
-      <label style="font-weight:400"><input type="checkbox" id="senabled" style="width:auto"> neuestes Backup automatisch herunterladen</label>
-      <label for="sfolder">Ordner</label><input id="sfolder" spellcheck="false" style="font-family:inherit">
-      <label for="sinterval">Wie oft</label>
+      <label for="senabled">Automatic</label>
+      <label style="font-weight:400"><input type="checkbox" id="senabled" style="width:auto"> download the newest backup automatically</label>
+      <label for="sfolder">Folder</label><input id="sfolder" spellcheck="false" style="font-family:inherit">
+      <label for="sinterval">How often</label>
       <select id="sinterval">
-        <option value="6">alle 6 Stunden</option><option value="12">alle 12 Stunden</option>
-        <option value="24">täglich</option><option value="48">alle 2 Tage</option><option value="168">wöchentlich</option>
+        <option value="6">every 6 hours</option><option value="12">every 12 hours</option>
+        <option value="24">daily</option><option value="48">every 2 days</option><option value="168">weekly</option>
       </select>
-      <label for="skeep">Behalten</label><div><input type="number" id="skeep" min="1" max="365" style="width:90px"> lokale Backups</div>
+      <label for="skeep">Keep</label><div><input type="number" id="skeep" min="1" max="365" style="width:90px"> local backups</div>
     </div>
     <div class="err" id="serr"></div>
-    <div class="row"><button id="ssave">Speichern</button><button id="scancel" class="secondary">Abbrechen</button></div>
+    <div class="row"><button id="ssave">Save</button><button id="scancel" class="secondary">Cancel</button></div>
   </section>
 
   <section class="block">
-    <h2>Auf dem Server</h2>
+    <h2>On the server</h2>
     <div class="table-wrap"><table>
-      <thead><tr><th>Datei</th><th>Erstellt</th><th>Größe</th><th>Lokal</th><th></th></tr></thead>
+      <thead><tr><th>File</th><th>Created</th><th>Size</th><th>Local</th><th></th></tr></thead>
       <tbody id="bakrows"></tbody>
     </table></div>
-    <p class="hint">Wiederherstellen erfolgt bewusst nicht aus der App, sondern auf dem Server
-      (<code>inventree-gw decrypt</code>, siehe README).</p>
+    <p class="hint">Restoring is intentionally not done from the app but on the server
+      (<code>inventree-gw decrypt</code>, see README).</p>
   </section>
 </main>
 <script>
@@ -212,12 +212,12 @@
   const $ = (id) => document.getElementById(id);
 
   const views = {
-    setup:      { dot: "warn", title: "Einrichtung", msg: "Gib einmalig die Gateway-Kennung ein, die du von deinem Administrator bekommen hast." },
-    connecting: { dot: "busy", title: "Verbinde …", msg: "Verbindung zum Server wird aufgebaut." },
-    pending:    { dot: "warn", title: "Wartet auf Freischaltung", msg: "Dieses Gerät ist noch nicht freigeschaltet." },
-    approved:   { dot: "ok",   title: "Verbunden", msg: "" },
-    revoked:    { dot: "bad",  title: "Zugang gesperrt", msg: "Dieses Gerät wurde gesperrt. Wende dich an deinen Administrator." },
-    error:      { dot: "bad",  title: "Keine Verbindung", msg: "" },
+    setup:      { dot: "warn", title: "Setup", msg: "Enter the gateway id you received from your administrator (only once)." },
+    connecting: { dot: "busy", title: "Connecting …", msg: "Connecting to the server." },
+    pending:    { dot: "warn", title: "Waiting for approval", msg: "This device has not been approved yet." },
+    approved:   { dot: "ok",   title: "Connected", msg: "" },
+    revoked:    { dot: "bad",  title: "Access revoked", msg: "This device has been revoked. Please contact your administrator." },
+    error:      { dot: "bad",  title: "Not connected", msg: "" },
   };
   let forceSetup = false;
   let current = null;
@@ -228,8 +228,8 @@
     $("dot").className = "dot " + v.dot;
     $("title").textContent = v.title;
     let msg = v.msg;
-    if (s.state === "approved") msg = s.user ? `Angemeldet als Gerät von ${s.user}.` : "Gerät freigeschaltet.";
-    if (s.state === "error") msg = s.message + " – neuer Versuch läuft automatisch.";
+    if (s.state === "approved") msg = s.user ? `Device of ${s.user}.` : "Device approved.";
+    if (s.state === "error") msg = s.message + " – retrying automatically.";
     $("msg").textContent = msg;
     $("code").textContent = s.device_short.toUpperCase();
     $("devid").textContent = s.device_id;
@@ -274,9 +274,9 @@
 
   const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   const short = (id) => (id.slice(0, 4) + "-" + id.slice(4, 8)).toUpperCase();
-  const statusText = { pending: "wartet", approved: "freigeschaltet", revoked: "gesperrt" };
+  const statusText = { pending: "pending", approved: "approved", revoked: "revoked" };
   const order = { pending: 0, approved: 1, revoked: 2 };
-  const fmtTime = (t) => { const d = new Date(t); return isNaN(d) ? t : d.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" }); };
+  const fmtTime = (t) => { const d = new Date(t); return isNaN(d) ? t : d.toLocaleString(undefined, { dateStyle: "short", timeStyle: "short" }); };
 
   async function admin(request) {
     const r = await invoke("admin_request", { request });
@@ -302,14 +302,14 @@
         const badges = `<span class="badge ${d.status}">${statusText[d.status]}</span>` + (d.admin ? `<span class="badge admin">Admin</span>` : "");
         let actions = "";
         if (!d.admin) {
-          const approve = `<input placeholder="Benutzername" value="${esc(d.user)}" data-user="${esc(d.id)}"><button data-act="approve" data-id="${esc(d.id)}">Freischalten</button>`;
-          if (d.status === "pending") actions = approve + `<button class="danger" data-act="delete" data-id="${esc(d.id)}">Ablehnen</button>`;
-          if (d.status === "approved") actions = `<button class="danger" data-act="revoke" data-id="${esc(d.id)}">Sperren</button>`;
-          if (d.status === "revoked") actions = approve + `<button class="danger" data-act="delete" data-id="${esc(d.id)}">Löschen</button>`;
+          const approve = `<input placeholder="Username" value="${esc(d.user)}" data-user="${esc(d.id)}"><button data-act="approve" data-id="${esc(d.id)}">Approve</button>`;
+          if (d.status === "pending") actions = approve + `<button class="danger" data-act="delete" data-id="${esc(d.id)}">Reject</button>`;
+          if (d.status === "approved") actions = `<button class="danger" data-act="revoke" data-id="${esc(d.id)}">Revoke</button>`;
+          if (d.status === "revoked") actions = approve + `<button class="danger" data-act="delete" data-id="${esc(d.id)}">Delete</button>`;
         }
         return `<tr><td class="mono">${short(d.id)}</td><td>${badges}</td><td>${esc(d.device_name)}</td><td>${esc(d.os_user)}</td>
           <td>${esc(d.user || "–")}</td><td>${esc(fmtTime(d.last_seen))}</td><td><div class="row">${actions}</div></td></tr>`;
-      }).join("") : `<tr><td colspan="7" class="empty">Noch keine Geräte.</td></tr>`;
+      }).join("") : `<tr><td colspan="7" class="empty">No devices yet.</td></tr>`;
     } catch (e) { $("deverr").textContent = e; }
   }
 
@@ -319,7 +319,7 @@
     const id = b.dataset.id, act_ = b.dataset.act;
     if (act_ === "approve") {
       const user = document.querySelector(`input[data-user="${CSS.escape(id)}"]`).value.trim();
-      if (!user) { $("deverr").textContent = "Bitte den InvenTree-Benutzernamen eintragen."; return; }
+      if (!user) { $("deverr").textContent = "Please enter the InvenTree username."; return; }
       act({ action: "approve", id, user });
     } else if (act_ === "revoke") {
       if (confirmInline(b)) act({ action: "revoke", id });
@@ -331,7 +331,7 @@
   // Two-click confirmation without browser dialogs. Esc or a timeout disarms it.
   function confirmInline(b) {
     if (b.dataset.armed) return true;
-    b.dataset.armed = "1"; b.dataset.label = b.textContent; b.textContent = "Sicher?";
+    b.dataset.armed = "1"; b.dataset.label = b.textContent; b.textContent = "Sure?";
     b._timer = setTimeout(() => disarm(b), 3000);
     return false;
   }
@@ -364,9 +364,9 @@
   // ---------- Backups ----------
   const fmtSize = (b) => b >= 1e9 ? (b / 1e9).toFixed(2) + " GB" : b >= 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1e3)) + " kB";
   const ago = (t) => {
-    if (!t) return "noch nie";
+    if (!t) return "never";
     const s = (Date.now() - new Date(t)) / 1000;
-    const rel = s < 90 ? "gerade eben" : s < 5400 ? `vor ${Math.round(s / 60)} Min.` : s < 172800 ? `vor ${Math.round(s / 3600)} Std.` : `vor ${Math.round(s / 86400)} Tagen`;
+    const rel = s < 90 ? "just now" : s < 5400 ? `${Math.round(s / 60)} min ago` : s < 172800 ? `${Math.round(s / 3600)} h ago` : `${Math.round(s / 86400)} days ago`;
     return `${fmtTime(t)} (${rel})`;
   };
   let bak = null;           // last overview
@@ -376,7 +376,7 @@
     $("senabled").checked = st.enabled;
     $("sfolder").value = st.folder || folder;
     $("sinterval").value = String(st.interval_hours);
-    if (!$("sinterval").value) { $("sinterval").add(new Option(`alle ${st.interval_hours} Stunden`, st.interval_hours)); $("sinterval").value = String(st.interval_hours); }
+    if (!$("sinterval").value) { $("sinterval").add(new Option(`every ${st.interval_hours} hours`, st.interval_hours)); $("sinterval").value = String(st.interval_hours); }
     $("skeep").value = st.keep;
     settingsDirty = false;
     $("serr").textContent = "";
@@ -388,8 +388,8 @@
       const o = await invoke("backup_overview");
       const keyMissing = o.server && o.server.result === "backups" && !o.server.key_set;
       const w = $("stalewarn");
-      if (keyMissing) { w.textContent = "Backups sind noch nicht eingerichtet."; w.hidden = false; }
-      else if (o.stale) { w.textContent = `Letztes lokales Backup: ${ago(o.state.last_ok)}. Bitte unter „Backups“ prüfen.`; w.hidden = false; }
+      if (keyMissing) { w.textContent = "Backups have not been set up yet."; w.hidden = false; }
+      else if (o.stale) { w.textContent = `Last local backup: ${ago(o.state.last_ok)}. Please check under "Backups".`; w.hidden = false; }
       else w.hidden = true;
     } catch { }
   }
@@ -405,18 +405,18 @@
     $("keysetup").hidden = !srv || srv.key_set || !$("keyresult").hidden;
     if (srv) {
       const lr = srv.last_run;
-      $("srvlast").textContent = srv.running ? "läuft gerade …" : lr ? `${ago(lr.time)} – ${lr.ok ? "ok" : "FEHLER"}` : "noch keine";
+      $("srvlast").textContent = srv.running ? "running …" : lr ? `${ago(lr.time)} – ${lr.ok ? "ok" : "FAILED"}` : "none yet";
       $("srvcount").textContent = srv.backups.length;
       $("bakfail").hidden = !(lr && !lr.ok);
-      if (lr && !lr.ok) $("bakfail").textContent = "Letzte Sicherung auf dem Server fehlgeschlagen: " + lr.message;
+      if (lr && !lr.ok) $("bakfail").textContent = "Last backup on the server failed: " + lr.message;
     }
-    $("loclast").textContent = ago(o.state.last_ok) + (o.syncing ? " – Abgleich läuft …" : "");
+    $("loclast").textContent = ago(o.state.last_ok) + (o.syncing ? " – sync running …" : "");
     $("locdir").textContent = o.folder;
-    $("loccount").textContent = o.local.length ? `${o.local.length} (neuestes: ${o.local[0].name})` : "keine";
+    $("loccount").textContent = o.local.length ? `${o.local.length} (newest: ${o.local[0].name})` : "none";
     const warn = [];
-    if (o.stale && srv && srv.key_set) warn.push("Das lokale Backup ist veraltet oder fehlt.");
-    if (o.state.last_error) warn.push("Letzter Abgleich fehlgeschlagen: " + o.state.last_error);
-    if (!o.settings.enabled) warn.push("Automatischer Abgleich ist ausgeschaltet.");
+    if (o.stale && srv && srv.key_set) warn.push("The local backup is outdated or missing.");
+    if (o.state.last_error) warn.push("Last sync failed: " + o.state.last_error);
+    if (!o.settings.enabled) warn.push("Automatic sync is turned off.");
     $("bakwarn").textContent = warn.join(" ");
     $("bakwarn").hidden = !warn.length;
     if (!settingsDirty) fillSettings(o.settings, o.folder);
@@ -424,8 +424,8 @@
     $("bakrows").innerHTML = srv && srv.backups.length ? srv.backups.map((b) => `<tr>
         <td class="mono" style="font-weight:500">${esc(b.name)}</td><td>${esc(fmtTime(b.created))}</td><td>${fmtSize(b.size)}</td>
         <td>${local.has(b.name) ? "✓" : ""}</td>
-        <td>${local.has(b.name) ? "" : `<button class="secondary" data-dl="${esc(b.name)}">Herunterladen</button>`}</td></tr>`).join("")
-      : `<tr><td colspan="5" class="empty">Noch keine Backups auf dem Server.</td></tr>`;
+        <td>${local.has(b.name) ? "" : `<button class="secondary" data-dl="${esc(b.name)}">Download</button>`}</td></tr>`).join("")
+      : `<tr><td colspan="5" class="empty">No backups on the server yet.</td></tr>`;
   }
 
   async function bakAction(btn, fn) {
@@ -438,7 +438,7 @@
   $("syncnow").onclick = (e) => bakAction(e.target, () => invoke("backup_sync_now", { name: null }));
   $("createnow").onclick = (e) => bakAction(e.target, async () => {
     await invoke("backup_create_now");
-    $("srvlast").textContent = "läuft gerade …";
+    $("srvlast").textContent = "running …";
   });
   $("bakrows").onclick = (e) => {
     const b = e.target.closest("button[data-dl]");
@@ -460,7 +460,7 @@
 
   $("genkey").onclick = async (e) => {
     $("bakerr").textContent = "";
-    if ($("pp1").value !== $("pp2").value) { $("bakerr").textContent = "Die Passphrasen stimmen nicht überein."; return; }
+    if ($("pp1").value !== $("pp2").value) { $("bakerr").textContent = "The passphrases do not match."; return; }
     e.target.disabled = true;
     try {
       const k = await invoke("backup_setup_key", { passphrase: $("pp1").value });
@@ -480,7 +480,7 @@
     const p = e.payload;
     $("progwrap").hidden = p.done >= p.total;
     $("prog").max = p.total; $("prog").value = p.done;
-    $("progtext").textContent = `Lade ${p.name}: ${fmtSize(p.done)} von ${fmtSize(p.total)}`;
+    $("progtext").textContent = `Downloading ${p.name}: ${fmtSize(p.done)} of ${fmtSize(p.total)}`;
   });
   listen("backup-changed", () => { if (!$("bakview").hidden) loadBackups(); });
   $("bakback").onclick = () => { location.hash = ""; };

@@ -236,7 +236,7 @@ fn admin_request(data: &PathBuf, home: &PathBuf, by: &str, req: AdminRequest) ->
             let res = (|| {
                 anyhow::ensure!(
                     backup::recipients(data)?.is_empty(),
-                    "Es ist bereits ein Backup-Schlüssel hinterlegt. Ändern nur auf dem Server."
+                    "A backup key is already set. It can only be changed on the server."
                 );
                 backup::add_recipient(data, &recipient)
             })();
@@ -264,9 +264,9 @@ fn admin_request(data: &PathBuf, home: &PathBuf, by: &str, req: AdminRequest) ->
             AdminRequest::List => AdminReply::Devices { devices: s.devices.clone() },
             AdminRequest::Approve { id, user } => {
                 let d = s.find_mut(&id)?;
-                anyhow::ensure!(!d.admin, "Admin-Geräte können nur auf dem Server geändert werden");
+                anyhow::ensure!(!d.admin, "Admin devices can only be changed on the server");
                 let user = sanitize(user.trim());
-                anyhow::ensure!(!user.is_empty(), "Benutzername fehlt");
+                anyhow::ensure!(!user.is_empty(), "Username missing");
                 d.status = Status::Approved;
                 d.user = Some(user);
                 info!("{by}: approved {} ({}) for {}", d.id, d.device_name, d.user.as_deref().unwrap_or(""));
@@ -274,14 +274,14 @@ fn admin_request(data: &PathBuf, home: &PathBuf, by: &str, req: AdminRequest) ->
             }
             AdminRequest::Revoke { id } => {
                 let d = s.find_mut(&id)?;
-                anyhow::ensure!(!d.admin, "Admin-Geräte können nur auf dem Server geändert werden");
+                anyhow::ensure!(!d.admin, "Admin devices can only be changed on the server");
                 d.status = Status::Revoked;
                 info!("{by}: revoked {} ({})", d.id, d.device_name);
                 AdminReply::Ok
             }
             AdminRequest::Delete { id } => {
                 let d = s.find_mut(&id)?;
-                anyhow::ensure!(!d.admin, "Admin-Geräte können nur auf dem Server geändert werden");
+                anyhow::ensure!(!d.admin, "Admin devices can only be changed on the server");
                 let target = d.id.clone();
                 s.devices.retain(|d| d.id != target);
                 info!("{by}: deleted {target}");
@@ -405,7 +405,7 @@ async fn handle_conn(conn: Connection, data: PathBuf, home: PathBuf, target: Str
                         tokio::task::spawn_blocking(move || admin_request(&data, &home, &short, req)).await?
                     } else {
                         warn!("{short}: admin request from non-admin device");
-                        AdminReply::Error { message: "Dieses Gerät darf keine Geräte verwalten".into() }
+                        AdminReply::Error { message: "This device is not allowed to manage devices".into() }
                     };
                     write_msg(&mut send, &reply).await?;
                     send.finish()?;
