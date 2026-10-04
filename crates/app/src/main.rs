@@ -27,6 +27,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{
     AppHandle, Emitter, Manager, State, Url, WebviewUrl, WebviewWindowBuilder,
     menu::{Menu, MenuItem, Submenu},
+    webview::{DownloadEvent, NewWindowResponse},
 };
 use tokio::{
     io::AsyncWriteExt,
@@ -204,6 +205,128 @@ fn navigate(app: &AppHandle, url: Url) -> Result<()> {
     Ok(())
 }
 
+/// InvenTree as served through the tunnel.
+fn is_inventree_url(url: &Url) -> bool {
+    url.host_str() == Some("localhost") && url.port() == Some(8080)
+}
+
+/// The app's own bundled pages (tauri://localhost on Linux/macOS, http://tauri.localhost on Windows).
+fn is_app_url(url: &Url) -> bool {
+    url.scheme() == "tauri" || url.host_str() == Some("tauri.localhost") || url.scheme() == "about"
+}
+
+/// External links (e.g. InvenTree documentation) open in the system browser, never in the app.
+fn open_external(url: &Url) {
+    if matches!(url.scheme(), "http" | "https" | "mailto") {
+        let _ = tauri_plugin_opener::open_url(url.as_str(), None::<&str>);
+    }
+}
+
+/// Saves downloads (exports, attachments) into the user's download folder without
+/// overwriting existing files, and shows a short notice in the window when done.
+fn handle_download<R: tauri::Runtime>(webview: tauri::Webview<R>, event: DownloadEvent<'_>) -> bool {
+    match event {
+        DownloadEvent::Requested { url, destination } => {
+            let name = destination
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .or_else(|| url.path_segments().and_then(|mut s| s.next_back()).map(str::to_string))
+                .filter(|n| !n.is_empty())
+                .unwrap_or_else(|| "download".into());
+            let Ok(dir) = webview.app_handle().path().download_dir() else { return false };
+            *destination = unique_path(&dir, &name);
+            true
+        }
+        DownloadEvent::Finished { path, success, .. } => {
+            let msg = match (success, path) {
+                (true, Some(p)) => format!("Saved to {}", p.display()),
+                (true, None) => "Download finished".to_string(),
+                (false, _) => "Download failed".to_string(),
+            };
+            let _ = webview.eval(format!("({})({})", TOAST_JS, serde_json::to_string(&msg).unwrap_or_default()));
+            true
+        }
+        _ => true,
+    }
+}
+
+/// `dir/name`, or `dir/name (1)`, `dir/name (2)`, ... if that already exists.
+fn unique_path(dir: &std::path::Path, name: &str) -> PathBuf {
+    let name = std::path::Path::new(name).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let candidate = dir.join(&name);
+    if !candidate.exists() {
+        return candidate;
+    }
+    let (stem, ext) = match name.rsplit_once('.') {
+        Some((s, e)) if !s.is_empty() => (s.to_string(), format!(".{e}")),
+        _ => (name.clone(), String::new()),
+    };
+    (1..)
+        .map(|i| dir.join(format!("{stem} ({i}){ext}")))
+        .find(|p| !p.exists())
+        .expect("infinite iterator")
+}
+
+const TOAST_JS: &str = r#"(m) => { const d = document.createElement("div"); d.textContent = m;
+  d.style.cssText = "position:fixed;right:12px;bottom:12px;z-index:2147483647;max-width:60vw;padding:8px 14px;border-radius:8px;background:#2b6cb0;color:#fff;font:13px system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.3)";
+  document.body.appendChild(d); setTimeout(() => d.remove(), 6000); }"#;
+
+/// Opens an InvenTree page (e.g. a generated PDF) that asked for a new window in a separate
+/// app window. It shares the login session with the main window and gets no IPC access.
+fn open_inventree_popup(app: &AppHandle, url: Url) {
+    static COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    let n = COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    let _ = WebviewWindowBuilder::new(app, format!("popup-{n}"), WebviewUrl::External(url))
+        .title("InvenTree")
+        .inner_size(1000.0, 800.0)
+        .zoom_hotkeys_enabled(true)
+        .on_navigation(|url| {
+            if is_inventree_url(url) || is_app_url(url) {
+                return true;
+            }
+            open_external(url);
+            false
+        })
+        .on_new_window(|url, _| {
+            open_external(&url);
+            NewWindowResponse::Deny
+        })
+        .on_download(handle_download)
+        .build();
+}
+
+/// WebKitGTK disables getUserMedia by default and denies permission requests that are not
+/// handled. Enable it and grant camera access (barcode scanning) to the InvenTree pages only;
+/// every other permission request (microphone, location, notifications, ...) is denied.
+#[cfg(target_os = "linux")]
+fn allow_camera_for_inventree(win: &tauri::WebviewWindow) {
+    let _ = win.with_webview(|wv| {
+        use webkit2gtk::{
+            PermissionRequestExt, SettingsExt, UserMediaPermissionRequest, UserMediaPermissionRequestExt,
+            WebViewExt, glib::prelude::Cast,
+        };
+        let view = wv.inner();
+        if let Some(settings) = WebViewExt::settings(&view) {
+            settings.set_enable_media_stream(true);
+        }
+        view.connect_permission_request(|view, request| {
+            let on_inventree = view
+                .uri()
+                .and_then(|u| Url::parse(&u).ok())
+                .is_some_and(|u| is_inventree_url(&u));
+            let camera_only = request
+                .downcast_ref::<UserMediaPermissionRequest>()
+                .is_some_and(|r| r.is_for_video_device() && !r.is_for_audio_device());
+            if on_inventree && camera_only {
+                request.allow();
+            } else {
+                request.deny();
+            }
+            true
+        });
+    });
+}
+
 fn go_home(app: &AppHandle, state: &App) {
     if let Some(url) = state.home_url.lock().unwrap().clone() {
         let _ = navigate(app, url);
@@ -358,6 +481,7 @@ fn setup(app: &mut tauri::App) -> Result<()> {
         )?],
     )?;
     let nav_handle = app.handle().clone();
+    let new_window_handle = app.handle().clone();
     let win = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
         .title("Connect for InvenTree")
         .inner_size(1280.0, 860.0)
@@ -365,7 +489,11 @@ fn setup(app: &mut tauri::App) -> Result<()> {
         .zoom_hotkeys_enabled(true)
         .initialization_script(include_str!("overlay.js"))
         .on_navigation(move |url| {
-            let ours = url.host_str() == Some("localhost") && url.port() == Some(8080);
+            let ours = is_inventree_url(url);
+            if !ours && !is_app_url(url) {
+                open_external(url);
+                return false;
+            }
             if !(ours && url.path().starts_with(APP_LINK_PREFIX)) {
                 return true;
             }
@@ -377,7 +505,23 @@ fn setup(app: &mut tauri::App) -> Result<()> {
             });
             false
         })
+        .on_new_window(move |url, _features| {
+            // Links with target="_blank": InvenTree pages (e.g. PDFs) get their own app window,
+            // everything else goes to the system browser.
+            if is_inventree_url(&url) {
+                let app = new_window_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    open_inventree_popup(&app, url);
+                });
+            } else {
+                open_external(&url);
+            }
+            NewWindowResponse::Deny
+        })
+        .on_download(handle_download)
         .build()?;
+    #[cfg(target_os = "linux")]
+    allow_camera_for_inventree(&win);
     *state.home_url.lock().unwrap() = win.url().ok();
     app.on_menu_event(|app, event| {
         let state = app.state::<App>().inner().clone();
@@ -439,4 +583,35 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Connect for InvenTree");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unique_path_does_not_overwrite() {
+        let dir = std::env::temp_dir().join(format!("cfi-test-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        assert_eq!(unique_path(&dir, "export.csv"), dir.join("export.csv"));
+        fs::write(dir.join("export.csv"), "").unwrap();
+        assert_eq!(unique_path(&dir, "export.csv"), dir.join("export (1).csv"));
+        fs::write(dir.join("export (1).csv"), "").unwrap();
+        assert_eq!(unique_path(&dir, "export.csv"), dir.join("export (2).csv"));
+        // no extension, and path components in the suggested name are stripped
+        fs::write(dir.join("README"), "").unwrap();
+        assert_eq!(unique_path(&dir, "README"), dir.join("README (1)"));
+        assert_eq!(unique_path(&dir, "../../etc/passwd"), dir.join("passwd"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn url_classification() {
+        let u = |s: &str| Url::parse(s).unwrap();
+        assert!(is_inventree_url(&u("http://localhost:8080/web/part/1")));
+        assert!(!is_inventree_url(&u("http://localhost:8000/")));
+        assert!(is_app_url(&u("tauri://localhost/index.html")));
+        assert!(is_app_url(&u("http://tauri.localhost/index.html")));
+        assert!(!is_app_url(&u("https://docs.inventree.org/")));
+    }
 }

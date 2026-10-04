@@ -92,7 +92,10 @@ cargo xwin build --release -p connect-for-inventree --target x86_64-pc-windows-m
 With a baked-in gateway id the app connects only to that gateway; users cannot change it (protects
 against being talked into a fake gateway). Without it, users enter the gateway id once in the app.
 
-Linux needs WebKitGTK 4.1; Windows 10/11 ship the required WebView2. Config and device key live
+Inside the app, external links open in the system browser, InvenTree pop-ups (e.g. label PDFs)
+open in a second window, and downloads go to the download folder.
+
+Linux needs WebKitGTK 4.1 (and `gst-plugins-good` for the camera barcode scanner); Windows 10/11 ship the required WebView2. Config and device key live
 in the app's local data dir (`~/.local/share/<identifier>`, `%LOCALAPPDATA%\<identifier>`).
 
 ## Rollout
@@ -163,7 +166,9 @@ rm /opt/inventree/tmp/restore.tar          # plaintext!
   protected by file system permissions only (no DPAPI yet). The exe is unsigned.
 - The app serves InvenTree on `127.0.0.1:8080`; on shared machines (terminal servers) every local
   user can reach that port (they still need an InvenTree login).
-- No automated tests yet.
+- Camera barcode scanning on Linux: WebKitGTK crashes when an infrared camera (grey-only
+  format, e.g. on Surface devices) is selected; choose the normal camera.
+- Only a few unit tests; no end-to-end tests yet.
 
 ## License
 
