@@ -39,6 +39,9 @@ const LOCAL_ADDR: &str = "127.0.0.1:8080";
 const LOCAL_URL: &str = "http://localhost:8080/";
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 const PENDING_POLL: Duration = Duration::from_secs(5);
+/// Gateway id baked in at build time. If set, it cannot be changed in the app or via
+/// config.json, so nobody can talk a user into connecting to a fake gateway.
+const BAKED_GATEWAY_ID: Option<&str> = option_env!("INVENTREE_GATEWAY_ID");
 /// Links on the InvenTree pages with this path prefix are handled by the app itself.
 const APP_LINK_PREFIX: &str = "/__connect/";
 
@@ -60,6 +63,8 @@ struct Status {
     device_id: String,
     device_short: String,
     gateway_id: Option<String>,
+    /// The gateway id is baked into this build and cannot be changed.
+    gateway_locked: bool,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -108,6 +113,9 @@ fn get_status(state: State<'_, App>) -> Status {
 
 #[tauri::command]
 fn set_gateway(app: AppHandle, state: State<'_, App>, gateway_id: String) -> Result<(), String> {
+    if BAKED_GATEWAY_ID.is_some() {
+        return Err("The gateway is fixed in this build and cannot be changed.".into());
+    }
     let id = gateway_id.trim().to_string();
     id.parse::<EndpointId>().map_err(|e| format!("Invalid gateway id: {e}"))?;
     let mut cfg = state.config.lock().unwrap();
@@ -207,9 +215,8 @@ fn load_config(path: &PathBuf) -> Config {
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_default();
-    if cfg.gateway_id.is_none() {
-        // Optional default baked in at build time.
-        cfg.gateway_id = option_env!("INVENTREE_GATEWAY_ID").map(str::to_string);
+    if let Some(id) = BAKED_GATEWAY_ID {
+        cfg.gateway_id = Some(id.to_string());
     }
     cfg
 }
@@ -324,6 +331,7 @@ fn setup(app: &mut tauri::App) -> Result<()> {
             device_id: key.public().to_string(),
             device_short: proto::short_id(&key.public()),
             gateway_id: config.gateway_id.clone(),
+            gateway_locked: BAKED_GATEWAY_ID.is_some(),
         }),
         conn: Mutex::new(None),
         config_path,

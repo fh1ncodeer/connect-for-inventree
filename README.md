@@ -85,9 +85,12 @@ Logs: `journalctl CONTAINER_NAME=inventree-server`, `journalctl _SYSTEMD_USER_UN
 
 ```sh
 cargo build --release -p connect-for-inventree
-INVENTREE_GATEWAY_ID=<gateway id> cargo build --release -p connect-for-inventree   # bake the id in
+INVENTREE_GATEWAY_ID=<gateway id> cargo build --release -p connect-for-inventree   # bake the id in (locked)
 cargo xwin build --release -p connect-for-inventree --target x86_64-pc-windows-msvc  # Windows exe
 ```
+
+With a baked-in gateway id the app connects only to that gateway; users cannot change it (protects
+against being talked into a fake gateway). Without it, users enter the gateway id once in the app.
 
 Linux needs WebKitGTK 4.1; Windows 10/11 ship the required WebView2. Config and device key live
 in the app's local data dir (`~/.local/share/<identifier>`, `%LOCALAPPDATA%\<identifier>`).

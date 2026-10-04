@@ -76,6 +76,7 @@
 
   <div class="state"><span class="dot" id="dot"></span><span id="title">Starting …</span></div>
   <p class="msg" id="msg"></p>
+  <p class="msg" id="gwline" hidden></p>
   <div class="warn-box" id="stalewarn" hidden></div>
 
   <section id="pending" hidden>
@@ -235,7 +236,11 @@
     $("devid").textContent = s.device_id;
     $("gwid").textContent = s.gateway_id || "–";
     $("pending").hidden = s.state !== "pending";
-    const showSetup = s.state === "setup" || forceSetup;
+    const gwShort = s.gateway_id ? (s.gateway_id.slice(0, 4) + "-" + s.gateway_id.slice(4, 8)).toUpperCase() : "";
+    $("gwline").textContent = gwShort ? `Gateway ${gwShort}` + (s.gateway_locked ? " (fixed in this build)" : "") : "";
+    $("gwline").hidden = !gwShort;
+    if (s.gateway_locked) forceSetup = false;
+    const showSetup = (s.state === "setup" || forceSetup) && !s.gateway_locked;
     $("setup").hidden = !showSetup;
     if (showSetup && !$("gw").value) $("gw").value = s.gateway_id || "";
     $("cancel").hidden = !s.gateway_id;
@@ -244,7 +249,7 @@
     $("backups").hidden = !(s.state === "approved" && s.admin);
     if (s.state === "approved" && s.admin) checkStale(); else $("stalewarn").hidden = true;
     $("retry").hidden = s.state === "setup";
-    $("change").hidden = showSetup;
+    $("change").hidden = showSetup || s.gateway_locked;
   }
 
   $("save").onclick = async () => {

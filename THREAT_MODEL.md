@@ -79,6 +79,7 @@ rights, one or a few admins.
 | InvenTree content (or an XSS in InvenTree) calls app functions | Tauri capabilities grant IPC only to the bundled status page, not to the remote InvenTree page. The overlay link to the status page is intercepted by the app and never reaches the server. | A malicious page can navigate the window to the app's status page; actions there still need user clicks. |
 | Other processes/users on the desktop use the tunnel | Port bound to `127.0.0.1` only. | On shared machines (terminal servers) other local users can reach the InvenTree login page through it. |
 | Stolen laptop or copied device key | Key file mode 600 (Unix) / user profile ACLs (Windows). Admin revokes the device. | No DPAPI/keychain protection yet; a copied key acts as that device until revoked. A saved InvenTree session cookie may also be on the laptop. |
+| User is talked into connecting to a fake gateway that shows a look-alike InvenTree login (phishing) | Builds with `INVENTREE_GATEWAY_ID` have the gateway id baked in; it cannot be changed in the app or via `config.json`. The status page shows the gateway's short id. | Builds without a baked-in id let users enter any gateway id. Use baked-in builds for companies; enforce InvenTree 2FA. |
 | Tampered app binary | — | Releases are unsigned; distribute binaries over a trusted channel. |
 
 ### Network and relay
@@ -121,6 +122,7 @@ rights, one or a few admins.
 ## Operator checklist
 
 - Enforce 2FA in InvenTree; strong admin password
+- Distribute app builds with the gateway id baked in (`INVENTREE_GATEWAY_ID`)
 - Compare short ids over a second channel before approving devices; revoke devices of leavers
 - Long backup passphrase; keep secret key and passphrase away from the laptop
 - Keep InvenTree and the server updated; restrict SSH to keys
