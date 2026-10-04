@@ -45,6 +45,8 @@ the traffic if no direct path exists. Relays only ever see encrypted data.
 - Backups are encrypted with [age](https://age-encryption.org) to the admin's public key. The
   server can create backups but cannot read them.
 
+Details, known residual risks and an operator checklist: [THREAT_MODEL.md](THREAT_MODEL.md).
+
 ## Repository layout
 
 | Path | |
