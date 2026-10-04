@@ -1,0 +1,19 @@
+[Unit]
+Description=InvenTree PostgreSQL
+
+[Container]
+ContainerName=inventree-db
+LogDriver=journald
+Image=docker.io/library/postgres:17
+Network=inventree.network
+EnvironmentFile=%h/config/db.env
+Volume=%h/pgdata:/var/lib/postgresql/data
+HealthCmd=pg_isready -U inventree -d inventree
+HealthInterval=15s
+
+[Service]
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,18 @@
+[Unit]
+Description=InvenTree Redis cache
+
+[Container]
+ContainerName=inventree-cache
+LogDriver=journald
+Image=docker.io/library/redis:7-alpine
+Network=inventree.network
+Exec=redis-server --save "" --appendonly no
+HealthCmd=redis-cli ping
+HealthInterval=15s
+
+[Service]
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

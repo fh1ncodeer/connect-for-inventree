@@ -1,0 +1,14 @@
+[Unit]
+Description=InvenTree iroh gateway
+After=inventree-proxy.service network-online.target
+Wants=inventree-proxy.service
+
+[Service]
+ExecStart=/opt/inventree/bin/inventree-gw --data /opt/inventree/gateway run --target 127.0.0.1:8000
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+UMask=0077
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,9 @@
+[Unit]
+Description=InvenTree encrypted backup
+After=inventree-db.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/inventree/bin/inventree-gw backup-create --keep 14
+UMask=0077
+Nice=10

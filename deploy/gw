@@ -1,0 +1,3 @@
+#!/bin/bash
+# Admin wrapper for the gateway CLI, e.g.: ./gw pending | ./gw approve 3f9a-b27c --user anna
+cd /tmp && exec sudo -n -u inventree /opt/inventree/bin/inventree-gw --data /opt/inventree/gateway "$@"

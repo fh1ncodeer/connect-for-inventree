@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect for InvenTree</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f5f6f8; --card:#fff; --fg:#1d2330; --muted:#677084; --accent:#2b6cb0; --ok:#2f855a; --warn:#b7791f; --bad:#c53030; --border:#dde1e8; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14171d; --card:#1d2129; --fg:#e6e9ef; --muted:#9aa3b5; --border:#2e3440; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; background:var(--bg); color:var(--fg);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .card { width:min(520px, calc(100vw - 32px)); background:var(--card); border:1px solid var(--border);
+          border-radius:12px; padding:28px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 24px; }
+  .state { display:flex; align-items:center; gap:10px; font-weight:600; font-size:17px; margin-bottom:8px; }
+  .dot { width:12px; height:12px; border-radius:50%; background:var(--muted); flex:none; }
+  .dot.ok { background:var(--ok); } .dot.warn { background:var(--warn); } .dot.bad { background:var(--bad); }
+  .dot.busy { animation: pulse 1.2s infinite; }
+  @keyframes pulse { 50% { opacity:.3; } }
+  .msg { color:var(--muted); margin:0 0 20px; }
+  .code { font: 600 28px/1.2 ui-monospace, "Cascadia Mono", monospace; letter-spacing:2px; text-align:center;
+          padding:14px; border:1px dashed var(--border); border-radius:8px; margin:0 0 16px; }
+  label { display:block; font-weight:600; margin-bottom:6px; }
+  input { width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:6px; background:var(--bg);
+          color:var(--fg); font: 13px ui-monospace, monospace; }
+  button { padding:9px 16px; border-radius:6px; border:1px solid var(--accent); background:var(--accent); color:#fff;
+           font:inherit; font-weight:600; cursor:pointer; }
+  button.secondary { background:transparent; color:var(--accent); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  details { margin-top:24px; color:var(--muted); font-size:13px; }
+  details code { word-break:break-all; }
+  .err { color:var(--bad); font-size:13px; margin-top:8px; min-height:1em; }
+  [hidden] { display:none !important; }
+  /* Native controls (WebKitGTK) keep a light background in dark mode unless told otherwise. */
+  input, select, textarea, option, optgroup { color:var(--fg); background-color:var(--bg); }
+  option:checked { background-color:var(--accent); color:#fff; }
+  .card.wide { width:min(980px, calc(100vw - 32px)); }
+  .bar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; }
+  .bar h1 { margin:0; }
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  td.mono { font-family: ui-monospace, monospace; font-weight:600; }
+  td input { width:140px; font-family:inherit; font-size:14px; }
+  td .row { margin:0; flex-wrap:nowrap; }
+  td button { padding:5px 10px; font-size:13px; }
+  button.danger { background:transparent; border-color:var(--bad); color:var(--bad); }
+  .badge { display:inline-block; padding:1px 8px; border-radius:99px; font-size:12px; font-weight:600; border:1px solid currentColor; }
+  .badge.pending { color:var(--warn); } .badge.approved { color:var(--ok); } .badge.revoked { color:var(--bad); }
+  .badge.admin { color:var(--accent); margin-left:6px; }
+  .empty { color:var(--muted); padding:16px 6px; }
+  .hint { color:var(--muted); font-size:13px; margin-top:16px; }
+  section.block { border-top:1px solid var(--border); padding-top:16px; margin-top:16px; }
+  section.block h2 { font-size:15px; margin:0 0 10px; }
+  .kv { display:grid; grid-template-columns: max-content 1fr; gap:4px 16px; font-size:14px; }
+  .kv dt { color:var(--muted); } .kv dd { margin:0; word-break:break-all; }
+  .warn-box { border:1px solid var(--warn); color:var(--warn); border-radius:8px; padding:10px 12px; margin:10px 0; font-size:14px; }
+  .bad-box { border:1px solid var(--bad); color:var(--bad); border-radius:8px; padding:10px 12px; margin:10px 0; font-size:14px; }
+  .secret { font: 600 13px ui-monospace, monospace; word-break:break-all; background:var(--bg); border:1px dashed var(--border); padding:10px; border-radius:6px; user-select:all; }
+  .form-grid { display:grid; grid-template-columns: max-content minmax(0, 1fr); gap:10px 14px; align-items:center; }
+  .form-grid label { margin:0; font-weight:500; }
+  select, input[type=number] { padding:8px; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; }
+  progress { width:100%; height:10px; }
+  .statusline { margin-top:8px; font-size:14px; }
+</style>
+</head>
+<body>
+<main class="card" id="statusview">
+  <h1>Connect for InvenTree</h1>
+  <p class="sub">Sichere Verbindung zum InvenTree-Server</p>
+
+  <div class="state"><span class="dot" id="dot"></span><span id="title">Starte …</span></div>
+  <p class="msg" id="msg"></p>
+  <div class="warn-box" id="stalewarn" hidden></div>
+
+  <section id="pending" hidden>
+    <div class="code" id="code"></div>
+    <p class="msg">Teile diese Kennung deinem Administrator mit (am besten telefonisch oder persönlich).
+      Sobald das Gerät freigeschaltet ist, öffnet sich InvenTree automatisch.</p>
+  </section>
+
+  <section id="setup" hidden>
+    <label for="gw">Gateway-Kennung</label>
+    <input id="gw" placeholder="64-stellige Kennung vom Administrator" autocomplete="off" spellcheck="false">
+    <div class="err" id="gwerr"></div>
+    <div class="row">
+      <button id="save">Speichern &amp; verbinden</button>
+      <button id="cancel" class="secondary">Abbrechen</button>
+    </div>
+  </section>
+
+  <div class="row" id="actions">
+    <button id="open" hidden>InvenTree öffnen</button>
+    <button id="devices" class="secondary" hidden>Geräte verwalten</button>
+    <button id="backups" class="secondary" hidden>Backups</button>
+    <button id="retry" class="secondary">Neu verbinden</button>
+    <button id="change" class="secondary">Gateway ändern</button>
+  </div>
+
+  <details>
+    <summary>Technische Details</summary>
+    <p>Geräte-Kennung: <code id="devid"></code></p>
+    <p>Gateway: <code id="gwid">–</code></p>
+  </details>
+</main>
+
+<main class="card wide" id="devview" hidden>
+  <div class="bar">
+    <h1>Geräte verwalten</h1>
+    <div class="row" style="margin:0">
+      <button id="devback" class="secondary">← Zurück</button>
+      <button id="refresh" class="secondary">Aktualisieren</button>
+      <button id="back">Zurück zu InvenTree</button>
+    </div>
+  </div>
+  <div class="err" id="deverr"></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Kennung</th><th>Status</th><th>Gerät</th><th>Windows-Benutzer</th><th>InvenTree-Benutzer</th><th>Zuletzt gesehen</th><th></th></tr></thead>
+      <tbody id="devrows"></tbody>
+    </table>
+  </div>
+  <p class="hint">Vergleiche die Kennung immer mit der, die dir der Mitarbeiter nennt, bevor du ein Gerät freischaltest.
+    Die InvenTree-Accounts legst du wie gewohnt in InvenTree unter Einstellungen → Benutzer an.</p>
+</main>
+<main class="card wide" id="bakview" hidden>
+  <div class="bar">
+    <h1>Backups</h1>
+    <div class="row" style="margin:0">
+      <button id="bakback" class="secondary">← Zurück</button>
+      <button id="bakinv">Zurück zu InvenTree</button>
+    </div>
+  </div>
+  <div class="err" id="bakerr"></div>
+
+  <section id="keysetup" hidden>
+    <div class="warn-box">Es ist noch kein Backup-Schlüssel eingerichtet. Ohne Schlüssel erstellt der Server keine Backups.</div>
+    <p class="msg">Die Backups werden mit einem Schlüsselpaar verschlüsselt. Der Server bekommt nur den öffentlichen Teil
+      und kann die Backups daher nicht selbst lesen. Der private Schlüssel wird mit deiner Passphrase geschützt im
+      Backup-Ordner gespeichert. <b>Ohne Passphrase und Schlüssel ist kein Backup wiederherstellbar.</b></p>
+    <div class="form-grid">
+      <label for="pp1">Passphrase</label><input id="pp1" type="password" autocomplete="new-password" placeholder="mindestens 12 Zeichen">
+      <label for="pp2">Wiederholen</label><input id="pp2" type="password" autocomplete="new-password">
+    </div>
+    <div class="row"><button id="genkey">Schlüssel erzeugen</button></div>
+  </section>
+
+  <section id="keyresult" hidden>
+    <div class="warn-box">Bewahre den privaten Schlüssel jetzt sicher auf: im Passwortmanager und ausgedruckt im Tresor.
+      Er wird nur dieses eine Mal angezeigt.</div>
+    <dl class="kv">
+      <dt>Privater Schlüssel</dt><dd><div class="secret" id="ksecret"></div></dd>
+      <dt>Öffentlicher Schlüssel</dt><dd><code id="kpublic"></code></dd>
+      <dt>Schlüsseldatei</dt><dd><code id="kfile"></code> (mit deiner Passphrase geschützt)</dd>
+    </dl>
+    <div class="row"><button id="kprint" class="secondary">Drucken</button><button id="kdone">Ich habe den Schlüssel sicher aufbewahrt</button></div>
+  </section>
+
+  <section class="block" id="bakstatus">
+    <h2>Status</h2>
+    <dl class="kv">
+      <dt>Letzte Sicherung (Server)</dt><dd id="srvlast">–</dd>
+      <dt>Backups auf dem Server</dt><dd id="srvcount">–</dd>
+      <dt>Letzter Abgleich (lokal)</dt><dd id="loclast">–</dd>
+      <dt>Lokaler Ordner</dt><dd id="locdir">–</dd>
+      <dt>Lokal vorhanden</dt><dd id="loccount">–</dd>
+    </dl>
+    <div class="warn-box" id="bakwarn" hidden></div>
+    <div class="bad-box" id="bakfail" hidden></div>
+    <div id="progwrap" hidden><div class="statusline" id="progtext"></div><progress id="prog" max="1" value="0"></progress></div>
+    <div class="row">
+      <button id="syncnow">Jetzt abgleichen</button>
+      <button id="createnow" class="secondary">Backup jetzt erstellen</button>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>Automatischer Abgleich</h2>
+    <div class="form-grid">
+      <label for="senabled">Automatisch</label>
+      <label style="font-weight:400"><input type="checkbox" id="senabled" style="width:auto"> neuestes Backup automatisch herunterladen</label>
+      <label for="sfolder">Ordner</label><input id="sfolder" spellcheck="false" style="font-family:inherit">
+      <label for="sinterval">Wie oft</label>
+      <select id="sinterval">
+        <option value="6">alle 6 Stunden</option><option value="12">alle 12 Stunden</option>
+        <option value="24">täglich</option><option value="48">alle 2 Tage</option><option value="168">wöchentlich</option>
+      </select>
+      <label for="skeep">Behalten</label><div><input type="number" id="skeep" min="1" max="365" style="width:90px"> lokale Backups</div>
+    </div>
+    <div class="err" id="serr"></div>
+    <div class="row"><button id="ssave">Speichern</button><button id="scancel" class="secondary">Abbrechen</button></div>
+  </section>
+
+  <section class="block">
+    <h2>Auf dem Server</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Datei</th><th>Erstellt</th><th>Größe</th><th>Lokal</th><th></th></tr></thead>
+      <tbody id="bakrows"></tbody>
+    </table></div>
+    <p class="hint">Wiederherstellen erfolgt bewusst nicht aus der App, sondern auf dem Server
+      (<code>inventree-gw decrypt</code>, siehe README).</p>
+  </section>
+</main>
+<script>
+  const { invoke } = window.__TAURI__.core;
+  const { listen } = window.__TAURI__.event;
+  const $ = (id) => document.getElementById(id);
+
+  const views = {
+    setup:      { dot: "warn", title: "Einrichtung", msg: "Gib einmalig die Gateway-Kennung ein, die du von deinem Administrator bekommen hast." },
+    connecting: { dot: "busy", title: "Verbinde …", msg: "Verbindung zum Server wird aufgebaut." },
+    pending:    { dot: "warn", title: "Wartet auf Freischaltung", msg: "Dieses Gerät ist noch nicht freigeschaltet." },
+    approved:   { dot: "ok",   title: "Verbunden", msg: "" },
+    revoked:    { dot: "bad",  title: "Zugang gesperrt", msg: "Dieses Gerät wurde gesperrt. Wende dich an deinen Administrator." },
+    error:      { dot: "bad",  title: "Keine Verbindung", msg: "" },
+  };
+  let forceSetup = false;
+  let current = null;
+
+  function render(s) {
+    current = s;
+    const v = views[s.state] || views.error;
+    $("dot").className = "dot " + v.dot;
+    $("title").textContent = v.title;
+    let msg = v.msg;
+    if (s.state === "approved") msg = s.user ? `Angemeldet als Gerät von ${s.user}.` : "Gerät freigeschaltet.";
+    if (s.state === "error") msg = s.message + " – neuer Versuch läuft automatisch.";
+    $("msg").textContent = msg;
+    $("code").textContent = s.device_short.toUpperCase();
+    $("devid").textContent = s.device_id;
+    $("gwid").textContent = s.gateway_id || "–";
+    $("pending").hidden = s.state !== "pending";
+    const showSetup = s.state === "setup" || forceSetup;
+    $("setup").hidden = !showSetup;
+    if (showSetup && !$("gw").value) $("gw").value = s.gateway_id || "";
+    $("cancel").hidden = !s.gateway_id;
+    $("open").hidden = s.state !== "approved";
+    $("devices").hidden = !(s.state === "approved" && s.admin);
+    $("backups").hidden = !(s.state === "approved" && s.admin);
+    if (s.state === "approved" && s.admin) checkStale(); else $("stalewarn").hidden = true;
+    $("retry").hidden = s.state === "setup";
+    $("change").hidden = showSetup;
+  }
+
+  $("save").onclick = async () => {
+    $("gwerr").textContent = "";
+    try { await invoke("set_gateway", { gatewayId: $("gw").value }); forceSetup = false; }
+    catch (e) { $("gwerr").textContent = e; }
+  };
+  $("open").onclick = () => invoke("open_inventree");
+  $("retry").onclick = () => invoke("retry");
+  $("change").onclick = async () => { forceSetup = true; render(await invoke("get_status")); $("gw").focus(); };
+
+  function cancelSetup() {
+    if (!current || !current.gateway_id) return false;
+    forceSetup = false;
+    $("gw").value = "";
+    $("gwerr").textContent = "";
+    render(current);
+    return true;
+  }
+  $("cancel").onclick = cancelSetup;
+  $("devback").onclick = () => { location.hash = ""; };
+
+  $("devices").onclick = () => invoke("show_devices");
+  $("backups").onclick = () => invoke("show_backups");
+  $("back").onclick = () => invoke("open_inventree");
+  $("refresh").onclick = () => loadDevices(true);
+
+  const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+  const short = (id) => (id.slice(0, 4) + "-" + id.slice(4, 8)).toUpperCase();
+  const statusText = { pending: "wartet", approved: "freigeschaltet", revoked: "gesperrt" };
+  const order = { pending: 0, approved: 1, revoked: 2 };
+  const fmtTime = (t) => { const d = new Date(t); return isNaN(d) ? t : d.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" }); };
+
+  async function admin(request) {
+    const r = await invoke("admin_request", { request });
+    if (r.result === "error") throw r.message;
+    return r;
+  }
+
+  async function act(request) {
+    $("deverr").textContent = "";
+    try { await admin(request); await loadDevices(true); }
+    catch (e) { $("deverr").textContent = e; }
+  }
+
+  async function loadDevices(force = false) {
+    // Don't throw away what the admin is typing; manual refresh still reloads.
+    const editing = [...document.querySelectorAll("input[data-user]")].some((i) => i.value !== i.defaultValue);
+    if (!force && (editing || document.activeElement?.dataset?.user !== undefined)) return;
+    try {
+      const { devices } = await admin({ action: "list" });
+      $("deverr").textContent = "";
+      devices.sort((a, b) => order[a.status] - order[b.status] || b.last_seen.localeCompare(a.last_seen));
+      $("devrows").innerHTML = devices.length ? devices.map((d) => {
+        const badges = `<span class="badge ${d.status}">${statusText[d.status]}</span>` + (d.admin ? `<span class="badge admin">Admin</span>` : "");
+        let actions = "";
+        if (!d.admin) {
+          const approve = `<input placeholder="Benutzername" value="${esc(d.user)}" data-user="${esc(d.id)}"><button data-act="approve" data-id="${esc(d.id)}">Freischalten</button>`;
+          if (d.status === "pending") actions = approve + `<button class="danger" data-act="delete" data-id="${esc(d.id)}">Ablehnen</button>`;
+          if (d.status === "approved") actions = `<button class="danger" data-act="revoke" data-id="${esc(d.id)}">Sperren</button>`;
+          if (d.status === "revoked") actions = approve + `<button class="danger" data-act="delete" data-id="${esc(d.id)}">Löschen</button>`;
+        }
+        return `<tr><td class="mono">${short(d.id)}</td><td>${badges}</td><td>${esc(d.device_name)}</td><td>${esc(d.os_user)}</td>
+          <td>${esc(d.user || "–")}</td><td>${esc(fmtTime(d.last_seen))}</td><td><div class="row">${actions}</div></td></tr>`;
+      }).join("") : `<tr><td colspan="7" class="empty">Noch keine Geräte.</td></tr>`;
+    } catch (e) { $("deverr").textContent = e; }
+  }
+
+  $("devrows").onclick = (e) => {
+    const b = e.target.closest("button[data-act]");
+    if (!b) return;
+    const id = b.dataset.id, act_ = b.dataset.act;
+    if (act_ === "approve") {
+      const user = document.querySelector(`input[data-user="${CSS.escape(id)}"]`).value.trim();
+      if (!user) { $("deverr").textContent = "Bitte den InvenTree-Benutzernamen eintragen."; return; }
+      act({ action: "approve", id, user });
+    } else if (act_ === "revoke") {
+      if (confirmInline(b)) act({ action: "revoke", id });
+    } else if (act_ === "delete") {
+      if (confirmInline(b)) act({ action: "delete", id });
+    }
+  };
+
+  // Two-click confirmation without browser dialogs. Esc or a timeout disarms it.
+  function confirmInline(b) {
+    if (b.dataset.armed) return true;
+    b.dataset.armed = "1"; b.dataset.label = b.textContent; b.textContent = "Sicher?";
+    b._timer = setTimeout(() => disarm(b), 3000);
+    return false;
+  }
+  function disarm(b) {
+    clearTimeout(b._timer);
+    if (b.dataset.armed) { b.textContent = b.dataset.label; delete b.dataset.armed; }
+  }
+
+  // Esc always backs out one step, nothing is saved.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const armed = document.querySelectorAll("button[data-armed]");
+    if (armed.length) { armed.forEach(disarm); return; }
+    const el = document.activeElement;
+    if (el && el.tagName === "INPUT" && el.dataset.user !== undefined) {
+      if (el.value !== el.defaultValue) { el.value = el.defaultValue; } else { el.blur(); }
+      return;
+    }
+    if (!$("devview").hidden) { location.hash = ""; return; }
+    if (!$("bakview").hidden) {
+      if (!$("keyresult").hidden) return; // the secret key must be acknowledged explicitly
+      if (el && (el.id === "pp1" || el.id === "pp2") && el.value) { $("pp1").value = $("pp2").value = ""; return; }
+      if (settingsDirty) { cancelSettings(); return; }
+      location.hash = ""; return;
+    }
+    if (!$("setup").hidden && cancelSetup()) return;
+    if (current && current.state === "approved") invoke("open_inventree");
+  });
+
+  // ---------- Backups ----------
+  const fmtSize = (b) => b >= 1e9 ? (b / 1e9).toFixed(2) + " GB" : b >= 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1e3)) + " kB";
+  const ago = (t) => {
+    if (!t) return "noch nie";
+    const s = (Date.now() - new Date(t)) / 1000;
+    const rel = s < 90 ? "gerade eben" : s < 5400 ? `vor ${Math.round(s / 60)} Min.` : s < 172800 ? `vor ${Math.round(s / 3600)} Std.` : `vor ${Math.round(s / 86400)} Tagen`;
+    return `${fmtTime(t)} (${rel})`;
+  };
+  let bak = null;           // last overview
+  let settingsDirty = false;
+
+  function fillSettings(st, folder) {
+    $("senabled").checked = st.enabled;
+    $("sfolder").value = st.folder || folder;
+    $("sinterval").value = String(st.interval_hours);
+    if (!$("sinterval").value) { $("sinterval").add(new Option(`alle ${st.interval_hours} Stunden`, st.interval_hours)); $("sinterval").value = String(st.interval_hours); }
+    $("skeep").value = st.keep;
+    settingsDirty = false;
+    $("serr").textContent = "";
+  }
+  ["senabled", "sfolder", "sinterval", "skeep"].forEach((id) => $(id).addEventListener("input", () => { settingsDirty = true; }));
+
+  async function checkStale() {
+    try {
+      const o = await invoke("backup_overview");
+      const keyMissing = o.server && o.server.result === "backups" && !o.server.key_set;
+      const w = $("stalewarn");
+      if (keyMissing) { w.textContent = "Backups sind noch nicht eingerichtet."; w.hidden = false; }
+      else if (o.stale) { w.textContent = `Letztes lokales Backup: ${ago(o.state.last_ok)}. Bitte unter „Backups“ prüfen.`; w.hidden = false; }
+      else w.hidden = true;
+    } catch { }
+  }
+
+  async function loadBackups(force = false) {
+    const typing = ["pp1", "pp2"].some((id) => $(id).value);
+    if (!force && typing) return;
+    let o;
+    try { o = await invoke("backup_overview"); } catch (e) { $("bakerr").textContent = e; return; }
+    bak = o;
+    $("bakerr").textContent = o.server_error || "";
+    const srv = o.server && o.server.result === "backups" ? o.server : null;
+    $("keysetup").hidden = !srv || srv.key_set || !$("keyresult").hidden;
+    if (srv) {
+      const lr = srv.last_run;
+      $("srvlast").textContent = srv.running ? "läuft gerade …" : lr ? `${ago(lr.time)} – ${lr.ok ? "ok" : "FEHLER"}` : "noch keine";
+      $("srvcount").textContent = srv.backups.length;
+      $("bakfail").hidden = !(lr && !lr.ok);
+      if (lr && !lr.ok) $("bakfail").textContent = "Letzte Sicherung auf dem Server fehlgeschlagen: " + lr.message;
+    }
+    $("loclast").textContent = ago(o.state.last_ok) + (o.syncing ? " – Abgleich läuft …" : "");
+    $("locdir").textContent = o.folder;
+    $("loccount").textContent = o.local.length ? `${o.local.length} (neuestes: ${o.local[0].name})` : "keine";
+    const warn = [];
+    if (o.stale && srv && srv.key_set) warn.push("Das lokale Backup ist veraltet oder fehlt.");
+    if (o.state.last_error) warn.push("Letzter Abgleich fehlgeschlagen: " + o.state.last_error);
+    if (!o.settings.enabled) warn.push("Automatischer Abgleich ist ausgeschaltet.");
+    $("bakwarn").textContent = warn.join(" ");
+    $("bakwarn").hidden = !warn.length;
+    if (!settingsDirty) fillSettings(o.settings, o.folder);
+    const local = new Set(o.local.map((f) => f.name));
+    $("bakrows").innerHTML = srv && srv.backups.length ? srv.backups.map((b) => `<tr>
+        <td class="mono" style="font-weight:500">${esc(b.name)}</td><td>${esc(fmtTime(b.created))}</td><td>${fmtSize(b.size)}</td>
+        <td>${local.has(b.name) ? "✓" : ""}</td>
+        <td>${local.has(b.name) ? "" : `<button class="secondary" data-dl="${esc(b.name)}">Herunterladen</button>`}</td></tr>`).join("")
+      : `<tr><td colspan="5" class="empty">Noch keine Backups auf dem Server.</td></tr>`;
+  }
+
+  async function bakAction(btn, fn) {
+    $("bakerr").textContent = "";
+    btn.disabled = true;
+    try { await fn(); } catch (e) { $("bakerr").textContent = e; }
+    btn.disabled = false;
+    await loadBackups(true);
+  }
+  $("syncnow").onclick = (e) => bakAction(e.target, () => invoke("backup_sync_now", { name: null }));
+  $("createnow").onclick = (e) => bakAction(e.target, async () => {
+    await invoke("backup_create_now");
+    $("srvlast").textContent = "läuft gerade …";
+  });
+  $("bakrows").onclick = (e) => {
+    const b = e.target.closest("button[data-dl]");
+    if (b) bakAction(b, () => invoke("backup_sync_now", { name: b.dataset.dl }));
+  };
+  $("ssave").onclick = async () => {
+    $("serr").textContent = "";
+    const settings = {
+      enabled: $("senabled").checked,
+      folder: $("sfolder").value.trim() || null,
+      interval_hours: parseInt($("sinterval").value, 10),
+      keep: parseInt($("skeep").value, 10) || 14,
+    };
+    try { await invoke("backup_save_settings", { settings }); settingsDirty = false; await loadBackups(true); }
+    catch (e) { $("serr").textContent = e; }
+  };
+  function cancelSettings() { if (bak) fillSettings(bak.settings, bak.folder); }
+  $("scancel").onclick = cancelSettings;
+
+  $("genkey").onclick = async (e) => {
+    $("bakerr").textContent = "";
+    if ($("pp1").value !== $("pp2").value) { $("bakerr").textContent = "Die Passphrasen stimmen nicht überein."; return; }
+    e.target.disabled = true;
+    try {
+      const k = await invoke("backup_setup_key", { passphrase: $("pp1").value });
+      $("pp1").value = $("pp2").value = "";
+      $("ksecret").textContent = k.secret_key;
+      $("kpublic").textContent = k.public_key;
+      $("kfile").textContent = k.key_file;
+      $("keysetup").hidden = true;
+      $("keyresult").hidden = false;
+    } catch (err) { $("bakerr").textContent = err; }
+    e.target.disabled = false;
+  };
+  $("kprint").onclick = () => window.print();
+  $("kdone").onclick = () => { $("ksecret").textContent = ""; $("keyresult").hidden = true; loadBackups(true); };
+
+  listen("backup-progress", (e) => {
+    const p = e.payload;
+    $("progwrap").hidden = p.done >= p.total;
+    $("prog").max = p.total; $("prog").value = p.done;
+    $("progtext").textContent = `Lade ${p.name}: ${fmtSize(p.done)} von ${fmtSize(p.total)}`;
+  });
+  listen("backup-changed", () => { if (!$("bakview").hidden) loadBackups(); });
+  $("bakback").onclick = () => { location.hash = ""; };
+  $("bakinv").onclick = () => invoke("open_inventree");
+
+  let timer = null;
+  function route() {
+    const page = location.hash.slice(1);
+    $("statusview").hidden = page === "devices" || page === "backups";
+    $("devview").hidden = page !== "devices";
+    $("bakview").hidden = page !== "backups";
+    clearInterval(timer);
+    if (page === "devices") { loadDevices(); timer = setInterval(loadDevices, 5000); }
+    if (page === "backups") { loadBackups(true); timer = setInterval(loadBackups, 10000); }
+  }
+  window.addEventListener("hashchange", route);
+  route();
+
+  listen("status", (e) => render(e.payload));
+  invoke("get_status").then(render);
+</script>
+</body>
+</html>

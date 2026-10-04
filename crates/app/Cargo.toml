@@ -1,0 +1,25 @@
+[package]
+name = "connect-for-inventree"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[[bin]]
+name = "connect-for-inventree"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+age = { version = "0.12", features = ["armor"] }
+anyhow = "1"
+humantime = "2"
+iroh = "1.3"
+proto = { path = "../proto" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2.12", features = ["custom-protocol"] }
+tokio = { version = "1", features = ["full"] }

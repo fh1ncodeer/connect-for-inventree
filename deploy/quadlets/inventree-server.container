@@ -1,0 +1,23 @@
+[Unit]
+Description=InvenTree server (gunicorn)
+Requires=inventree-db.service inventree-cache.service
+After=inventree-db.service inventree-cache.service
+
+[Container]
+ContainerName=inventree-server
+LogDriver=journald
+Image=docker.io/inventree/inventree:1.5.6
+Network=inventree.network
+EnvironmentFile=%h/config/inventree.env
+Volume=%h/data:/home/inventree/data
+HealthCmd=invoke server-health --address http://localhost:8000
+HealthInterval=20s
+HealthStartPeriod=60s
+
+[Service]
+Restart=always
+RestartSec=10
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

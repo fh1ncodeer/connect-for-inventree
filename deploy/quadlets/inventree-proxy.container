@@ -1,0 +1,23 @@
+[Unit]
+Description=InvenTree proxy (Caddy)
+Requires=inventree-server.service
+After=inventree-server.service
+
+[Container]
+ContainerName=inventree-proxy
+LogDriver=journald
+Image=docker.io/library/caddy:2-alpine
+Network=inventree.network
+Environment=INVENTREE_SERVER=http://inventree-server:8000
+PublishPort=127.0.0.1:8000:80
+Volume=%h/config/Caddyfile:/etc/caddy/Caddyfile:ro
+Volume=%h/data/static:/var/www/static:ro
+Volume=%h/data/media:/var/www/media:ro
+Volume=%h/logs/caddy:/var/log/caddy
+
+[Service]
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
