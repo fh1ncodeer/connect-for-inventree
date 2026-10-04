@@ -19,7 +19,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::{App, save_config};
 
-const EXTENSION: &str = ".tar.age";
+const EXTENSION: &str = ".tar.zst.age";
 pub const KEY_FILE: &str = "backup-key.age";
 /// After a failed sync, wait at least this long before trying again automatically.
 const RETRY_AFTER_ERROR: Duration = Duration::from_secs(15 * 60);

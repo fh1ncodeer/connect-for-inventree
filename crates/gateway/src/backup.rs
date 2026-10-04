@@ -1,7 +1,7 @@
 //! Encrypted backups of the whole InvenTree installation.
 //!
-//! A backup is one tar archive, encrypted with age to the admin's public key, so the server
-//! can create backups but never read them. Contents:
+//! A backup is one zstd-compressed tar archive, encrypted with age to the admin's public key,
+//! so the server can create backups but never read them. Contents:
 //! - `db.dump`: `pg_dump -Fc` of the InvenTree database
 //! - `data/`: InvenTree data dir (media, config.yaml, secret_key.txt, ...), without static files
 //! - `config/`: env files and Caddyfile
@@ -22,7 +22,9 @@ use age::x25519;
 use anyhow::{Context, Result, bail, ensure};
 use proto::{BackupInfo, BackupRun};
 
-pub const EXTENSION: &str = ".tar.age";
+pub const EXTENSION: &str = ".tar.zst.age";
+/// zstd level: the library default, fast with a good ratio.
+const ZSTD_LEVEL: i32 = 3;
 const RECIPIENTS_FILE: &str = "backup-recipients.txt";
 const LAST_RUN_FILE: &str = "last-run.json";
 const RUNNING_FILE: &str = "running";
@@ -184,9 +186,10 @@ fn write_archive(paths: &Paths, recipients: &[x25519::Recipient], dump: &Path) -
 
     let file = OpenOptions::new().write(true).create(true).truncate(true).mode(0o600).open(&partial)?;
     let encryptor = age::Encryptor::with_recipients(recipients.iter().map(|r| r as &dyn age::Recipient))?;
-    let writer = encryptor.wrap_output(BufWriter::new(file))?;
+    let encrypted = encryptor.wrap_output(BufWriter::new(file))?;
+    let compressed = zstd::stream::write::Encoder::new(encrypted, ZSTD_LEVEL)?;
 
-    let mut tar = tar::Builder::new(writer);
+    let mut tar = tar::Builder::new(compressed);
     tar.follow_symlinks(false);
     tar.append_path_with_name(dump, "db.dump")?;
 
@@ -228,8 +231,9 @@ fn write_archive(paths: &Paths, recipients: &[x25519::Recipient], dump: &Path) -
     header.set_cksum();
     tar.append_data(&mut header, "manifest.json", manifest.as_slice())?;
 
-    let writer = tar.into_inner()?;
-    let mut buf = writer.finish()?;
+    let compressed = tar.into_inner()?;
+    let encrypted = compressed.finish()?;
+    let mut buf = encrypted.finish()?;
     buf.flush()?;
     buf.get_ref().sync_all()?;
     drop(buf);
@@ -257,8 +261,9 @@ pub fn decrypt(input: &Path, key_file: &Path, output: &mut dyn Write) -> Result<
         .parse()
         .map_err(|e| anyhow::anyhow!("invalid secret key: {e}"))?;
     let decryptor = age::Decryptor::new(io::BufReader::new(File::open(input)?))?;
-    let mut reader = decryptor.decrypt(std::iter::once(&identity as &dyn age::Identity))?;
-    io::copy(&mut reader, output)?;
+    let reader = decryptor.decrypt(std::iter::once(&identity as &dyn age::Identity))?;
+    let mut tar = zstd::stream::read::Decoder::new(reader)?;
+    io::copy(&mut tar, output)?;
     Ok(())
 }
 

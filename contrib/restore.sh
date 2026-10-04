@@ -1,6 +1,6 @@
 #!/bin/bash
 # Restores a decrypted InvenTree backup. Run as the 'inventree' user on the server:
-#   inventree-gw decrypt --key backup-key.age inventree-<ts>.tar.age -o /opt/inventree/tmp/restore.tar
+#   inventree-gw decrypt --key backup-key.age inventree-<ts>.tar.zst.age -o /opt/inventree/tmp/restore.tar
 #   restore.sh /opt/inventree/tmp/restore.tar
 # Overwrites the database, data/, config/ and gateway/ with the backup contents.
 set -euo pipefail

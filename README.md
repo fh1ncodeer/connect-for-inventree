@@ -113,7 +113,7 @@ inventree-gw delete 3f9a-b27c
 
 ## Backups
 
-`inventree-backup.timer` creates an encrypted backup every night (02:30, last 14 kept in
+`inventree-backup.timer` creates a zstd-compressed, encrypted backup every night (02:30, last 14 kept in
 `/opt/inventree/backups`). Contents: `db.dump` (pg_dump -Fc), `data/` (media, config.yaml,
 secret_key.txt, ...), `config/`, `gateway/` (gateway key, devices, backup recipients),
 `quadlets/`, `manifest.json`.
@@ -131,7 +131,7 @@ In the app (**Backups**, admin devices only):
 ```
 inventree-gw backup-create                 # what the timer runs
 inventree-gw backup-key-list | backup-key-add age1...
-inventree-gw decrypt --key backup-key.age inventree-<ts>.tar.age -o backup.tar
+inventree-gw decrypt --key backup-key.age inventree-<ts>.tar.zst.age -o backup.tar
 ```
 
 ### Restore
@@ -141,7 +141,7 @@ longer trust the server, decrypt on your own computer and copy only the result.
 
 ```sh
 ssh -t server "cd /tmp && sudo -u inventree /opt/inventree/bin/inventree-gw decrypt \
-  --key /opt/inventree/tmp/backup-key.age /opt/inventree/backups/inventree-<ts>.tar.age \
+  --key /opt/inventree/tmp/backup-key.age /opt/inventree/backups/inventree-<ts>.tar.zst.age \
   -o /opt/inventree/tmp/restore.tar"
 rm /opt/inventree/tmp/backup-key.age
 
